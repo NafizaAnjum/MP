@@ -4,9 +4,9 @@
     num1 dw ?                ; First number
     num2 dw ?                ; Second number
     msg1 db 'First: $'
-    msg2 db 'Second: $' 
-    msg3 db 'Sum: $'
-    msg4 db 'Diff: $'
+    msg2 db 13,10, 'Second: $' 
+    msg3 db 13,10, 'Sum: $'
+    msg4 db 13,10, 'Diff: $'
 .code
 main:
     mov ax, @data
@@ -17,18 +17,18 @@ main:
     mov ah, 09h
     int 21h
 
-    call InputNumber          ; Read number from user
-    mov num1, ax              ; Store into num1
-    call PrintNewLine         ; Move to next line
+    call ReadNumber          ; Read number from user
+    mov num1, ax            ; Store into num1
+    
 
     ; ===== Get second number =====
     mov dx, offset msg2
     mov ah, 09h
     int 21h
 
-    call InputNumber
+    call ReadNumber
     mov num2, ax
-    call PrintNewLine
+    
 
     ; ===== Show sum =====
     mov dx, offset msg3
@@ -38,7 +38,7 @@ main:
     mov ax, num1
     add ax, num2
     call PrintNumber
-    call PrintNewLine
+
 
     ; ===== Show difference =====
     mov dx, offset msg4
@@ -47,9 +47,9 @@ main:
 
     mov ax, num1
     cmp ax, num2
-    jge positiveDiff          ; If num1 >= num2, go subtract normally
+    jge positiveDiff          ; If num1 >= num2, subtract normally
 
-    ; If difference is negative, print '-'
+    ; If difference negative, print '-'
     mov dl, '-'
     mov ah, 02h
     int 21h
@@ -69,81 +69,63 @@ displayDiff:
     int 21h
 
 ; =====================================
-; Procedure: InputNumber
-; Reads a multi-digit number from user (ends on Enter)
+; Procedure: ReadNumber
+; Reads multi-digit number from keyboard (ends on Enter)
 ; Returns: AX = decimal number
 ; =====================================
-InputNumber proc
-    xor ax, ax                ; Clear AX
-    xor bx, bx                ; BX will store the current value
+ReadNumber proc
+    xor ax, ax
+    xor bx, bx
+    xor cx, cx         ; Use CX as accumulator (was 0 in your code)
 
-readLoop:
-    mov ah, 01h                ; Read a character
+read_loop:
+    mov ah, 01h
     int 21h
-    cmp al, 13                 ; Check if Enter was pressed
-    je doneInput
+    cmp al, 13         ; Enter pressed?
+    je done_read
 
-    sub al, '0'                ; Convert ASCII to number
-    mov cl, al                 ; Store digit in CL
+    sub al, '0'        ; Convert ASCII to digit 0-9
 
-    mov ax, bx                 ; AX = current total
-    mov bx, 10
-    mul bx                     ; Multiply by 10
-    add al, cl                 ; Add new digit
-    mov bx, ax                 ; Save result in BX
-    jmp readLoop
+    mov bl, al         ; Store digit in BL
+    
+    mov ax, cx         ; Move current number into AX
+    mov cx, 10
+    mul cx             ; AX = AX * 10
+    
+    add ax, bx         ; Add new digit
+    mov cx, ax         ; Save result in CX
 
-doneInput:
-    mov ax, bx                 ; Final result into AX
+    jmp read_loop
+
+done_read:
+    mov ax, cx         ; Return result in AX
     ret
-InputNumber endp
+ReadNumber endp
 
 ; =====================================
 ; Procedure: PrintNumber
-; Prints a number in AX as decimal
+; Prints number in AX as decimal
 ; =====================================
 PrintNumber proc
-    cmp ax, 0
-    jne convertToDigits
-
-    ; If number is zero, just print '0'
-    mov dl, '0'
-    mov ah, 02h
-    int 21h
-    ret
-
-convertToDigits:
+    mov cx, 0
     mov bx, 10
-    xor cx, cx                 ; CX = digit count
 
-divideLoop:
-    xor dx, dx                 ; Clear DX for division
-    div bx                     ; AX / 10, remainder in DX
-    push dx                    ; Store remainder (digit) on stack
-    inc cx                     ; Increase digit count
-    test ax, ax
-    jnz divideLoop              ; Continue until AX = 0
+convert_loop:
+    xor dx, dx
+    div bx
+    push dx
+    inc cx
+    cmp ax, 0
+    jne convert_loop
 
-printLoop:
-    pop dx                     ; Get digit from stack
-    add dl, '0'                 ; Convert to ASCII
+print_loop:
+    pop dx
+    add dl, '0'
     mov ah, 02h
     int 21h
-    loop printLoop
+    loop print_loop
     ret
 PrintNumber endp
 
-; =====================================
-; Procedure: PrintNewLine
-; Prints a new line (CR + LF)
-; =====================================
-PrintNewLine proc
-    mov ah, 02h
-    mov dl, 13                  ; Carriage return
-    int 21h
-    mov dl, 10                  ; Line feed
-    int 21h
-    ret
-PrintNewLine endp
 
 end main
