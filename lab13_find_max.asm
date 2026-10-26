@@ -1,4 +1,4 @@
-; Find maximum of 3 numbers in 8086 Assembly (0–999 range)
+; Find maximum of 3 numbers in 8086 Assembly (0â€“999 range)
 .model small
 .stack 100h
 .data
